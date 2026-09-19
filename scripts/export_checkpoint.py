@@ -1,1 +1,1 @@
-"""导出入口占位。实现 src/tinytorch/export 后再接到 tinytorch.export.save / load。"""
+"""导出入口占位。实现 src/jmtorch/export 后再接到 jmtorch.export.save / load。"""

@@ -16,3 +16,7 @@ htmlcov/
 .idea/
 .vscode/
 *.swp
+
+# 本地讲解稿、练习脚本生成的图
+practices/**/*.html
+practices/**/*.png
