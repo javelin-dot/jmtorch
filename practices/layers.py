@@ -4,16 +4,10 @@
 # NumPy 的 ndarray 是存数字的数组；本项目 Tensor 把数组包起来，提供 shape、matmul 等接口，和 PyTorch 的 torch.Tensor 不是同一个类。
 # shape=(32, 784) 表示“一批 32 条样本，每条 784 个数字”；一维 shape=(784,) 的末尾逗号表示只有一个维度。
 # forward 只是让输入经过现有权重算出输出；学习还需要损失、梯度、优化器更新权重，这个文件没有实现完整训练。
-"""阶段草稿。实现写在这里，稳定后再迁入 src/jmtorch/。"""
+"""03 网络层练习；复用张量与激活函数模块。"""
 
-# import 的意思是从其他文件或库取工具；importlib.util 用于按文件路径加载 Python 模块。
-import importlib.util
-# sys.modules 保存已经加载过的模块，可按字符串名字找到模块对象。
-import sys
 # time 中的计时器在后面的性能实验里使用。
 import time
-# Path 提供与操作系统兼容的路径操作，避免自己拼接反斜杠。
-from pathlib import Path
 
 # as 给 NumPy 起短名 np；后面 np.sqrt、np.zeros 等都从这个库调用。
 import numpy as np
@@ -21,22 +15,11 @@ import numpy as np
 # 固定随机数生成器的种子为 7：同样的调用顺序会产生可重现的随机序列，而非每次抽样都得到相同数字。
 rng = np.random.default_rng(7)
 
-# __file__ 是当前文件路径；resolve() 得绝对路径，两个 parent 回到 practices，/ 在 Path 中用于拼接路径。
-_act_path = Path(__file__).resolve().parent.parent / "02_activations" / "practice.py"
-# 先说明“按路径加载哪个文件、给它什么模块名”；此行只生成加载说明，尚未执行目标文件。
-_spec = importlib.util.spec_from_file_location("activations_practice", _act_path)
-# 根据加载说明先创建模块对象，可以把它看成装有类、函数等名字的容器。
-_act_mod = importlib.util.module_from_spec(_spec)
-# 字典用 [键] 存取值；这里以模块名作键，把模块对象登记到 Python 的模块表。
-sys.modules["activations_practice"] = _act_mod
-# 真正执行 02_activations/practice.py，执行完才可以从模块对象上取到 Tensor、ReLU 等类。
-_spec.loader.exec_module(_act_mod)
-# 点号用于取对象属性；把上一阶段自己实现的 Tensor 类绑定为本文件可用的名字。
-Tensor = _act_mod.Tensor
-# ReLU 是激活函数：输入小于 0 的位置输出 0，其余位置不变，让层与层之间有非线性。
-ReLU = _act_mod.ReLU
-# 同样取到 Sigmoid 类；本文件后面没有调用它，导入不等于参与了本次网络计算。
-Sigmoid = _act_mod.Sigmoid
+# 从各自的定义模块导入，依赖关系直接对应前面两章。
+# Python 缓存正常导入的模块，使层参数与外部输入使用同一个 Tensor 类。
+from .tensor import Tensor
+# ReLU 给网络加入非线性；Sigmoid 留给后续组合练习使用。
+from .activations import ReLU, Sigmoid
 
 # 大写通常用作常量名；当前用 1.0 / 输入宽度计算权重初始方差。
 INIT_SCALE_FACTOR = 1.0
@@ -308,7 +291,7 @@ def test_unit_linear_layer():
     print(f"   bias 是否全零：{np.allclose(layer.bias.data, 0)}")
 
     # 从内到外读：(32, 784) 给出形状，standard_normal 生成均值 0、标准差 1 的随机数。
-    # Tensor 再包装数组，并依照 01_tensor 的实现转成 float32；每行一个样本，共 32 个样本。
+    # Tensor 再包装数组，并依照 tensor 模块的实现转成 float32；每行一个样本，共 32 个样本。
     x = Tensor(rng.standard_normal((32, 784)))
     # 调用前向方法：输入乘权重，再加偏置，即 y = x @ W + b；返回的 Tensor 交给 y。
     y = layer.forward(x)
@@ -798,7 +781,7 @@ def analyze_layer_performance():
         # start 不是当前日期或钟表时间；把它与后面的计时器读数相减，才得到经历了多久。
         start = time.perf_counter()
         # range(iterations) 此处等同于 range(100)，把缩进的前向传播正式重复 100 次。
-        # 当前 01_tensor 的二维 matmul 使用两层 Python for 循环并逐项调用 np.dot，batch=512 时可能明显较慢。
+        # 当前 tensor 模块的二维 matmul 使用两层 Python for 循环并逐项调用 np.dot，batch=512 时可能明显较慢。
         for _ in range(iterations):
             # 这次前向传播处在计时区间内；_ 接收返回结果但不用于后续业务计算。
             # 这里只执行 xW+b，没有损失计算、反向传播、参数更新，测得的不是完整训练一步的耗时。
@@ -1022,7 +1005,7 @@ def test_layers():
 # __name__ 是 Python 给模块设置的名字变量；直接运行本文件时，它的值为字符串 "__main__"。
 # if ...: 在 == 比较为真时执行下面缩进的入口代码；注意两边都是双下划线，== 是比较而不是赋值。
 # 当别的文件导入它时，__name__ 通常是模块名，下面演示不会自动运行；但顶层 import、随机数生成器创建、
-# 动态加载及类/函数定义仍会执行。因此“导入不执行主入口”不等于“导入时这个文件什么都不执行”。
+# 依赖导入及类/函数定义仍会执行。因此“导入不执行主入口”不等于“导入时这个文件什么都不执行”。
 if __name__ == "__main__":
     # 直接运行时先调用 test_module，执行单元测试与集成演示；有未捕获异常就停止，后面的分析不会继续。
     test_module()

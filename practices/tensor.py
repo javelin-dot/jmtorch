@@ -12,7 +12,7 @@
 # if/else 让程序按条件选择一条分支；for 每次取出一个值反复执行缩进代码块。
 # 程序出错时先看异常类型：TypeError 通常指对象类型不对，ValueError 通常指值或形状不合理。
 # 本类把 NumPy 数组装进对象并提供运算符接口，初学时可把张量看成“带形状的一组数字”。
-"""阶段草稿。实现写在这里，稳定后再迁入 src/jmtorch/。"""
+"""01 张量练习；其他阶段统一从 practices.tensor 导入 Tensor。"""
 
 # import 引入 Python 标准库的计时工具；下面的性能练习会用到。
 import time

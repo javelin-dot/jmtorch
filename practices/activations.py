@@ -6,15 +6,11 @@
 # def 定义可调用的方法；冒号后的缩进代码属于该方法，return 把结果交回调用者。
 # class 定义一种对象的规则；Sigmoid() 创建实例；方法里的 self 指正在调用方法的那个实例。
 # 函数后面的括号表示调用，例如 np.exp(x)；括号里可放参数，也可用来把多行表达式写清楚。
-"""阶段草稿。实现写在这里，稳定后再迁入 src/jmtorch/。"""
+"""02 激活函数练习；通过普通包导入复用张量。"""
 
-# import 引入 Python 标准库的模块加载工具：后面要按文件路径执行 01 阶段的练习文件。
-import importlib.util
-# sys.modules 是 Python 的“已加载模块”登记表；把本次加载的模块按名字登记进去。
-import sys
 # time 是计时工具，供文件后面的性能练习使用；激活函数本身不依赖它。
 import time
-# Path 用对象表示文件路径，可以取父目录或用 / 拼接路径片段。
+# Path 用对象表示文件路径，后面的绘图函数用它确定图片保存位置。
 from pathlib import Path
 
 # as np 给第三方库 NumPy 起别名；它负责对一整组数字进行数组计算。
@@ -23,19 +19,9 @@ import numpy as np
 # 随机种子 7 使相同调用顺序下的测试数据可重现；连续两次取随机数仍通常不同。
 rng = np.random.default_rng(7)
 
-# __file__ 是本脚本的路径；resolve() 化为绝对路径，两个 .parent 回到 practices/ 目录。
-# Path 的 / 是路径拼接，不是数字除法；下划线开头表示作者把名字当作模块内部变量。
-_tensor_path = Path(__file__).resolve().parent.parent / "01_tensor" / "practice.py"
-# 按指定文件路径建立加载说明；"tensor_practice" 是给这个模块起的名字，此时尚未执行文件。
-_spec = importlib.util.spec_from_file_location("tensor_practice", _tensor_path)
-# 根据加载说明先创建模块对象；这里的“模块”可以理解为一个装着函数和类的文件对象。
-_tensor_mod = importlib.util.module_from_spec(_spec)
-# 方括号 ["tensor_practice"] 用字符串作键，把模块对象记入 sys.modules。
-sys.modules["tensor_practice"] = _tensor_mod
-# 真正执行 01 阶段的 practice.py，执行完后模块对象才拥有那里定义的 Tensor 等名字。
-_spec.loader.exec_module(_tensor_mod)
-# 从模块中取出 Tensor 类，在本文件中也用 Tensor 这个名字；它不是 PyTorch 的 torch.Tensor。
-Tensor = _tensor_mod.Tensor
+# 点号表示当前 practices 包；普通导入会复用已经加载的模块。
+# 各章节共享同一个 Tensor 类，跨模块运算时 isinstance 才能正确识别张量。
+from .tensor import Tensor
 
 # 大写名字是常量命名习惯；1e-10 等于 0.0000000001，后面的误差测试会用它。
 TOLERANCE = 1e-10
@@ -810,7 +796,7 @@ def plot_activations():
     # 显示浅色网格；alpha=0.3 控制透明度。
     plt.grid(True, alpha=0.3)
 
-    # __file__ 是当前 practice.py 路径；resolve() 转绝对路径，parent 是所在目录。
+    # __file__ 是当前 activations.py 路径；resolve() 转绝对路径，parent 是所在目录。
     # / "softmax.png" 拼出同目录下的输出文件路径，若文件存在 savefig 会覆盖它。
     out = Path(__file__).resolve().parent / "softmax.png"
     # 只有主动调用此函数时，才以 120 DPI 把当前图保存到 softmax.png；没有 plt.show()。
